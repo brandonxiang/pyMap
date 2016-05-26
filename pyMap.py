@@ -3,6 +3,7 @@ import sys
 import math
 import requests
 from PIL import Image
+from tqdm import trange
 
 
 def process_latlng(north, west, south, east, zoom, output='output/mosaic.png'):
@@ -18,8 +19,8 @@ def process_tilenum(left, right, top, bottom, zoom, output):
     """
     download and mosaic by tile number 
     """
-    for x in range(left, right + 1):
-        for y in range(top, bottom + 1):
+    for x in trange(left, right + 1):
+        for y in trange(top, bottom + 1):
             path = './tiles/%i/%i/%i' % (zoom, x, y)
             if not os.path.exists(path):
                 _download(x, y, zoom)
@@ -38,7 +39,6 @@ def _download(x, y, z):
                 f.write(chunk)
                 f.flush()
         f.close()
-    print('Downloaded', x, y, z)
 
 
 def _mosaic(left, right, top, bottom, zoom, output):
@@ -46,8 +46,8 @@ def _mosaic(left, right, top, bottom, zoom, output):
     size_y = (bottom - top + 1) * 256
     output_im = Image.new("RGB", (size_x, size_y))
 
-    for x in range(left, right + 1):
-        for y in range(top, bottom + 1):
+    for x in trange(left, right + 1):
+        for y in trange(top, bottom + 1):
             path = './tiles/%i/%i/%i' % (zoom, x, y)
             target_im = Image.open(path)
             output_im.paste(target_im, (256 * (x - left), 256 * (y - top)))
