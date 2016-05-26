@@ -60,3 +60,9 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+
+#my files
+tiles/
+output/
+.vscode/
