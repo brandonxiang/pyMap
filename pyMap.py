@@ -15,7 +15,7 @@ def process_latlng(north, west, south, east, zoom, output='output/mosaic.png'):
     process_tilenum(left, right, top, bottom, zoom, output)
 
 
-def process_tilenum(left, right, top, bottom, zoom, output):
+def process_tilenum(left, right, top, bottom, zoom, output='output/mosaic.png'):
     """
     download and mosaic by tile number 
     """
@@ -29,7 +29,8 @@ def process_tilenum(left, right, top, bottom, zoom, output):
 
 def _download(x, y, z):
     url = "http://webst02.is.autonavi.com/appmaptile?style=6&x=%i&y=%i&z=%i" % (x, y, z)
-    r = requests.get(url, stream=True)
+
+    r = requests.get(url)
     path = './tiles/%i/%i' % (z, x)
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -38,13 +39,12 @@ def _download(x, y, z):
             if chunk:
                 f.write(chunk)
                 f.flush()
-        f.close()
 
 
 def _mosaic(left, right, top, bottom, zoom, output):
     size_x = (right - left + 1) * 256
     size_y = (bottom - top + 1) * 256
-    output_im = Image.new("RGB", (size_x, size_y))
+    output_im = Image.new("RGBA", (size_x, size_y))
 
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
@@ -70,7 +70,7 @@ def latlng2tilenum(lat_deg, lng_deg, zoom):
 
 
 def test():
-    process_latlng(22.4566710000, 113.8899620000, 22.3455760000, 114.2126860000, 13)
+    process_latlng(22.8203395702, 115.134878259, 22.8016510269, 115.1763224812, 15, 'output/houmen.png')
 
 
 def cml():
@@ -80,5 +80,5 @@ def cml():
     process_latlng(float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5]), str(sys.argv[6]))
 
 if __name__ == '__main__':
-    # test()
-    cml()
+    test()
+    # cml()
