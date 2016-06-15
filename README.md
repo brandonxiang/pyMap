@@ -27,7 +27,7 @@ pip install -r requirement.txt
 ###运用命令行
 
 ```
-python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 output/sample.png
+python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 output/sample.png gaode
 ```
 
 - 参数1： 西北角纬度
@@ -36,6 +36,7 @@ python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 output/sample.png
 - 参数4： 东南角经度
 - 参数5： 比例尺级别
 - 参数6： 输出路径（默认'output/mosaic.png'）
+- 参数7： 地图类型（默认'gaode.image'）
 
 ###hard code test function
 
