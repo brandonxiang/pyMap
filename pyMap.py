@@ -1,18 +1,28 @@
+"""
+github: https://github.com/brandonxiang/pyMap
+license: MIT
+"""
 import os
 import sys
 import math
 import requests
 from PIL import Image
 from tqdm import trange
+import configparser
 
-url = {
-    "gaode": "http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x=%i&y=%i&z=%i",
-    "gaode.image": "http://webst02.is.autonavi.com/appmaptile?style=6&x=%i&y=%i&z=%i",
-    "tianditu": "http://t1.tianditu.cn/DataServer?T=vec_w&X=%i&Y=%i&L=%i"
+URL = {
+    "gaode": "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
+    "gaode.image": "http://webst02.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+    "tianditu": "http://t2.tianditu.cn/DataServer?T=vec_w&X={x}&Y={y}&L={z}",
+    "googlesat": "http://khm0.googleapis.com/kh?v=203&hl=zh-CN&&x={x}&y={y}&z={z}",
+    "tianditusat":"http://t2.tianditu.cn/DataServer?T=img_w&X={x}&Y={y}&L={z}",
+    "esrisat":"http://server.arcgisonline.com/arcgis/rest/services/world_imagery/mapserver/tile/{z}/{y}/{x}",
+    "gaode.road": "http://webst02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=8",
+    "default":"http://61.144.226.124:9001/map/GISDATA/WORKNET/{z}/{y}/{x}.png"
 }
 
 
-def process_latlng(north, west, south, east, zoom, output='output/mosaic.png', maptype="gaode.image"):
+def process_latlng(north, west, south, east, zoom, output='mosaic', maptype="default"):
     """
     download and mosaic by latlng
 
@@ -22,15 +32,27 @@ def process_latlng(north, west, south, east, zoom, output='output/mosaic.png', m
     south -- south latitude
     east  -- east longitude
     zoom  -- map scale (0-18)
-    output -- output file name default output/mosaic.png
+    output -- output file name default mosaic
 
     """
+    north = float(north)
+    west = float(west)
+    south = float(south)
+    east = float(east)
+    zoom = int(zoom)
+    assert(east>-180 and east<180)
+    assert(west>-180 and west<180)
+    assert(north>-90 and north<90)
+    assert(south>-90 and south<90)
+    assert(west>east)
+    assert(north>south)
+
     left, top = latlng2tilenum(north, west, zoom)
     right, bottom = latlng2tilenum(south, east, zoom)
     process_tilenum(left, right, top, bottom, zoom, output, maptype)
 
 
-def process_tilenum(left, right, top, bottom, zoom, output='output/mosaic.png', maptype="gaode.image"):
+def process_tilenum(left, right, top, bottom, zoom, output='mosaic', maptype="default"):
     """
     download and mosaic by tile number
 
@@ -40,26 +62,37 @@ def process_tilenum(left, right, top, bottom, zoom, output='output/mosaic.png', 
     top    -- top tile number
     bottom -- bottom tile number
     zoom   -- map scale (0-18)
-    output -- output file name default output/mosaic.png
+    output -- output file name default mosaic
 
     """
-    download(left, right, top, bottom, zoom, maptype)
-    _mosaic(left, right, top, bottom, zoom, output)
+    left = int(left)
+    right = int(right)
+    top = int(top)
+    bottom = int(bottom)
+    zoom = int(zoom)
+    assert(right>left)
+    assert(bottom>top)
 
 
-def download(left, right, top, bottom, zoom, maptype="gaode.image"):
+    download(left, right, top, bottom, zoom, output, maptype)
+    _mosaic(left, right, top, bottom, zoom, output, maptype)
+
+
+def download(left, right, top, bottom, zoom, output='mosaic', maptype="default"):
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%i/%i/%i.png' % (zoom, x, y)
+            path = './tiles/%s/%i/%i/%i.png' % (maptype, zoom, x, y)
             if not os.path.exists(path):
-                _download(x, y, zoom, maptype)
+                _download(x, y, zoom,output, maptype)
 
 
-def _download(x, y, z, maptype="gaode.image"):
-    map_url = url[maptype] % (x, y, z)
-
+def _download(x, y, z, output, maptype):
+    url = URL.get(maptype, maptype)
+    map_url = url.format(x=x, y=y, z=z)
+    name = maptype if url != maptype else output
+    path = './tiles/%s/%i/%i' % (name, z, x) 
     r = requests.get(map_url)
-    path = './tiles/%i/%i' % (z, x)
+    
     if not os.path.isdir(path):
         os.makedirs(path)
     with open('%s/%i.png' % (path, y), 'wb') as f:
@@ -69,21 +102,26 @@ def _download(x, y, z, maptype="gaode.image"):
                 f.flush()
 
 
-def _mosaic(left, right, top, bottom, zoom, output='output/mosaic.png'):
+def _mosaic(left, right, top, bottom, zoom, output, maptype):
     size_x = (right - left + 1) * 256
     size_y = (bottom - top + 1) * 256
     output_im = Image.new("RGBA", (size_x, size_y))
 
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%i/%i/%i.png' % (zoom, x, y)
-            target_im = Image.open(path)
-            output_im.paste(target_im, (256 * (x - left), 256 * (y - top)))
+            path = './tiles/%s/%i/%i/%i.png' % (maptype, zoom, x, y)
+            if os.path.exists(path):
+                target_im = Image.open(path)
+                # if target_im.mode == 'P':
+                output_im.paste(target_im, (256 * (x - left), 256 * (y - top)))
+                target_im.close()
+    output = "output/"+output+".png"
     output_path = os.path.split(output)
     if len(output_path) > 1 and len(output_path) != 0:
         if not os.path.isdir(output_path[0]):
             os.makedirs(output_path[0])
     output_im.save(output)
+    output_im.close()
 
 
 def latlng2tilenum(lat_deg, lng_deg, zoom):
@@ -104,9 +142,27 @@ def latlng2tilenum(lat_deg, lng_deg, zoom):
     ytile = (1 - (math.log(math.tan(lat_rad) + 1 / math.cos(lat_rad)) / math.pi)) / 2 * n
     return math.floor(xtile), math.floor(ytile)
 
+def config():
+    cf = configparser.ConfigParser()
+    cf.read("config.conf", encoding="utf-8-sig")
+    download = cf.get("config","下载方式")
+    left = cf.get("config","左上横轴")
+    top = cf.get("config","左上纵轴")
+    right = cf.get("config","右下横轴")
+    bottom = cf.get("config","右下纵轴")
+    zoom = cf.get("config","级别")
+    name = cf.get("config","项目名")
+    maptype = cf.get("config","地图地址")
+
+    if download == "瓦片编码":
+        process_tilenum(left,right,top,bottom,zoom,name,maptype)
+    elif download == "地理编码":
+        process_latlng(top,left,bottom,right,zoom,name,maptype)
+
+
 
 def test():
-    process_latlng(22.4566710000, 113.8899620000, 22.3455760000, 114.2126860000, 13, 'output/houmen.png', "gaode")
+    process_tilenum(803,857,984,1061,8,'WORKNET')
 
 
 def cml():
@@ -116,5 +172,6 @@ def cml():
     process_latlng(float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5]), str(sys.argv[6]), str(sys.argv[7]))
 
 if __name__ == '__main__':
-    test()
+    config()
+    # test()
     # cml()
