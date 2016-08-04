@@ -70,8 +70,8 @@ def process_tilenum(left, right, top, bottom, zoom, output='mosaic', maptype="de
     top = int(top)
     bottom = int(bottom)
     zoom = int(zoom)
-    assert(right>left)
-    assert(bottom>top)
+    assert(right>=left)
+    assert(bottom>=top)
 
     filename = getname(output, maptype)
     download(left, right, top, bottom, zoom, filename, maptype)
