@@ -73,24 +73,24 @@ def process_tilenum(left, right, top, bottom, zoom, output='mosaic', maptype="de
     assert(right>left)
     assert(bottom>top)
 
+    filename = getname(output, maptype)
+    download(left, right, top, bottom, zoom, filename, maptype)
+    _mosaic(left, right, top, bottom, zoom, output, filename)
 
-    download(left, right, top, bottom, zoom, output, maptype)
-    _mosaic(left, right, top, bottom, zoom, output, maptype)
 
+def download(left, right, top, bottom, zoom, filename, maptype="default"):
 
-def download(left, right, top, bottom, zoom, output='mosaic', maptype="default"):
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%s/%i/%i/%i.png' % (maptype, zoom, x, y)
+            path = './tiles/%s/%i/%i/%i.png' % (filename, zoom, x, y)
             if not os.path.exists(path):
-                _download(x, y, zoom,output, maptype)
+                _download(x, y, zoom,filename,maptype)
 
 
-def _download(x, y, z, output, maptype):
+def _download(x, y, z, filename, maptype):
     url = URL.get(maptype, maptype)
+    path = './tiles/%s/%i/%i' % (filename, z, x) 
     map_url = url.format(x=x, y=y, z=z)
-    name = maptype if url != maptype else output
-    path = './tiles/%s/%i/%i' % (name, z, x) 
     r = requests.get(map_url)
     
     if not os.path.isdir(path):
@@ -102,14 +102,15 @@ def _download(x, y, z, output, maptype):
                 f.flush()
 
 
-def _mosaic(left, right, top, bottom, zoom, output, maptype):
+def _mosaic(left, right, top, bottom, zoom, output, filename):
+
     size_x = (right - left + 1) * 256
     size_y = (bottom - top + 1) * 256
     output_im = Image.new("RGBA", (size_x, size_y))
 
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%s/%i/%i/%i.png' % (maptype, zoom, x, y)
+            path = './tiles/%s/%i/%i/%i.png' % (filename, zoom, x, y)
             if os.path.exists(path):
                 target_im = Image.open(path)
                 # if target_im.mode == 'P':
@@ -141,6 +142,11 @@ def latlng2tilenum(lat_deg, lng_deg, zoom):
     lat_rad = lat_deg / 180 * math.pi
     ytile = (1 - (math.log(math.tan(lat_rad) + 1 / math.cos(lat_rad)) / math.pi)) / 2 * n
     return math.floor(xtile), math.floor(ytile)
+
+def getname(output,maptype):
+    url = URL.get(maptype, maptype)
+    return maptype if url != maptype else output
+
 
 def config():
     cf = configparser.ConfigParser()
