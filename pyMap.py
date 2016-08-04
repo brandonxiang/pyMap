@@ -44,7 +44,7 @@ def process_latlng(north, west, south, east, zoom, output='mosaic', maptype="def
     assert(west>-180 and west<180)
     assert(north>-90 and north<90)
     assert(south>-90 and south<90)
-    assert(west>east)
+    assert(west<east)
     assert(north>south)
 
     left, top = latlng2tilenum(north, west, zoom)
