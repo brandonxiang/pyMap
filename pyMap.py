@@ -18,7 +18,9 @@ URL = {
     "tianditusat":"http://t2.tianditu.cn/DataServer?T=img_w&X={x}&Y={y}&L={z}",
     "esrisat":"http://server.arcgisonline.com/arcgis/rest/services/world_imagery/mapserver/tile/{z}/{y}/{x}",
     "gaode.road": "http://webst02.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=8",
-    "default":"http://61.144.226.124:9001/map/GISDATA/WORKNET/{z}/{y}/{x}.png"
+    "default":"http://61.144.226.124:9001/map/GISDATA/WORKNET/{z}/{y}/{x}.png",
+    "szbuilding":"http://61.144.226.124:9001/map/GISDATA/SZBUILDING/{z}/{y}/{x}.png",
+    "szbase":"http://61.144.226.44:6080/arcgis/rest/services/basemap/szmap_basemap_201507_01/MapServer/tile/{z}/{y}/{x}"
 }
 
 
