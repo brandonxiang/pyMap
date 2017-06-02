@@ -1,5 +1,14 @@
 # pyMap
+
 Raster Map Download Helper
+
+## Similar Project
+
+ - [brandonxiang/pyMap](https://github.com/brandonxiang/pyMap) Raster Map Download Helper by python.
+ - [brandonxiang/pyMap_GFW](https://github.com/brandonxiang/pyMap_GFW) Raster Map Download Helper with [selenium](https://github.com/SeleniumHQ/selenium/) and [PhantomJS](http://phantomjs.org/)
+ - [brandonxiang/pyMap_webapp](https://github.com/brandonxiang/pyMap_webapp) A webapp version for [pyMap]((https://github.com/brandonxiang/pyMap)
+ - [brandonxiang/nodemap_spider](https://github.com/brandonxiang/nodemap_spider) Crawler Project for Raster Map by Electron.
+ - [brandonxiang/nodemap](https://github.com/brandonxiang/nodemap) A electron app for [nodemap_spider](https://github.com/brandonxiang/nodemap_spider)
 
 这是一个简单的实例，去实现地图下载工具。如今又很多瓦片的下载工具，但是都是收费的，感觉既然是盗版还要收费，非常不好。我决定做一个简单的地图下载器，将瓦片下载拼接成对应的图片。
 
