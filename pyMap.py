@@ -98,11 +98,15 @@ def _download(x, y, z, filename, maptype):
     
     if not os.path.isdir(path):
         os.makedirs(path)
-    with open('%s/%i.png' % (path, y), 'wb') as f:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:
-                f.write(chunk)
-                f.flush()
+        
+    if r.status_code !=200: 
+        print('request %i %i got response:%i' % (x, y, r.status_code))
+    elif r.status_code == 200: 
+        with open('%s/%i.png' % (path, y), 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
 
 
 def _mosaic(left, right, top, bottom, zoom, output, filename):
