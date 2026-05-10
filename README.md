@@ -1,5 +1,9 @@
 # 🗺️ pyMap
 
+[![PyPI](https://img.shields.io/pypi/v/pymap-tile.svg)](https://pypi.org/project/pymap-tile/)
+[![Python](https://img.shields.io/pypi/pyversions/pymap-tile.svg)](https://pypi.org/project/pymap-tile/)
+[![License](https://img.shields.io/github/license/brandonxiang/pyMap.svg)](LICENSE)
+
 **A lightweight Python helper for downloading raster map tiles and stitching them into a single image.**
 
 `pyMap` converts a geographic bounding box or an explicit tile range into Web Mercator tile coordinates, downloads missing tiles into a local cache, and mosaics the cached tiles into a PNG output.
@@ -14,28 +18,37 @@
 - 📝 **Typed and documented code**: core functions include Python type hints and docstrings.
 - 🧰 **Installable CLI**: exposes `pymap` / `pyMap` commands for third-party usage.
 
+## 📦 Installation
+
+Install the published package from PyPI:
+
+```bash
+pip install pymap-tile
+```
+
+After installation, use the CLI directly:
+
+```bash
+pymap --help
+pymap sources
+```
+
+Install from a local checkout when developing:
+
+```bash
+pip install -e .
+```
+
 ## ⚠️ Usage Notice
 
 This project is intended for learning, research, and personal tooling. Please respect map provider terms of service, copyright, rate limits, and local laws. Do not use it for unauthorized commercial map downloads.
 
-## 📦 Requirements
+## 🧩 Requirements
 
 - Python 3.5+
 - `requests` for HTTP downloads
 - `Pillow` for image composition
 - `tqdm` for progress output
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Install the CLI locally:
-
-```bash
-pip install .
-```
 
 ## 🚀 Quick Start
 
@@ -191,6 +204,12 @@ output/<output-name>.png
 For built-in map sources, `<cache-name>` is the source key. For custom URL templates, `<cache-name>` is the `output` value.
 
 ## 🧪 Testing
+
+Install development dependencies first if needed:
+
+```bash
+pip install -r requirements.txt
+```
 
 Run the standard-library test suite:
 

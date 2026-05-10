@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="pymap-tile",
-    version="0.1.0",
+    version="0.1.1",
     description="Download raster map tiles and stitch them into PNG mosaics.",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
