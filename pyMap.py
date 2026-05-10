@@ -5,8 +5,9 @@ license: MIT
 import os
 import sys
 import math
+import argparse
 import configparser
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import requests
 from PIL import Image
@@ -198,10 +199,10 @@ def getname(output: str, maptype: str) -> str:
     return maptype if url != maptype else output
 
 
-def config() -> None:
-    """Read ``config.conf`` and run the configured download mode."""
+def config(config_file: str = "config.conf") -> None:
+    """Read a config file and run the configured download mode."""
     cf = configparser.ConfigParser()
-    cf.read("config.conf", encoding="utf-8-sig")
+    cf.read(config_file, encoding="utf-8-sig")
     download_type = cf.get("config", "下载方式")
     left = cf.get("config", "左上横轴")
     top = cf.get("config", "左上纵轴")
@@ -223,26 +224,135 @@ def test() -> None:
 
 
 def cml() -> None:
-    """Parse CLI arguments and run a geographic-bounds download."""
-    if not len(sys.argv) in [7, 8]:
-        print(
-            "input 7 parameter northeast latitude,northeast longitude, "
-            "southeast latitude, southeast longitude,zoom , output file, "
-            "map type like gaode"
-        )
-        return
-    process_latlng(
-        float(sys.argv[1]),
-        float(sys.argv[2]),
-        float(sys.argv[3]),
-        float(sys.argv[4]),
-        int(sys.argv[5]),
-        str(sys.argv[6]),
-        str(sys.argv[7]),
+    """Backward-compatible wrapper for the historical command-line helper."""
+    main(sys.argv[1:])
+
+
+def _add_common_options(parser: argparse.ArgumentParser) -> None:
+    """Attach output and map source options shared by download commands."""
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="mosaic",
+        help="Output name; the final image is saved as output/<name>.png.",
+    )
+    parser.add_argument(
+        "-m",
+        "--maptype",
+        default="default",
+        help="Built-in map source key or custom URL template.",
     )
 
 
+def build_parser() -> argparse.ArgumentParser:
+    """Build the public command-line parser."""
+    parser = argparse.ArgumentParser(
+        prog="pymap",
+        description="Download raster map tiles and stitch them into a PNG mosaic.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    latlng_parser = subparsers.add_parser(
+        "latlng",
+        help="Download by geographic bounds.",
+    )
+    latlng_parser.add_argument("north", type=float, help="North latitude.")
+    latlng_parser.add_argument("west", type=float, help="West longitude.")
+    latlng_parser.add_argument("south", type=float, help="South latitude.")
+    latlng_parser.add_argument("east", type=float, help="East longitude.")
+    latlng_parser.add_argument("zoom", type=int, help="Web Mercator zoom level.")
+    _add_common_options(latlng_parser)
+
+    tilenum_parser = subparsers.add_parser(
+        "tilenum",
+        help="Download by inclusive tile-number bounds.",
+    )
+    tilenum_parser.add_argument("left", type=int, help="Left tile x number.")
+    tilenum_parser.add_argument("right", type=int, help="Right tile x number.")
+    tilenum_parser.add_argument("top", type=int, help="Top tile y number.")
+    tilenum_parser.add_argument("bottom", type=int, help="Bottom tile y number.")
+    tilenum_parser.add_argument("zoom", type=int, help="Web Mercator zoom level.")
+    _add_common_options(tilenum_parser)
+
+    config_parser = subparsers.add_parser(
+        "config",
+        help="Run a download from a Chinese config file.",
+    )
+    config_parser.add_argument(
+        "-f",
+        "--file",
+        default="config.conf",
+        help="Config file path. Defaults to config.conf.",
+    )
+
+    subparsers.add_parser("sources", help="List built-in map source keys.")
+    return parser
+
+
+def _run_legacy_latlng(argv: List[str]) -> int:
+    """Run the historical seven-argument geographic-bounds command."""
+    process_latlng(
+        float(argv[0]),
+        float(argv[1]),
+        float(argv[2]),
+        float(argv[3]),
+        int(argv[4]),
+        str(argv[5]),
+        str(argv[6]),
+    )
+    return 0
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """Run the ``pymap`` command-line interface."""
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if not argv:
+        config()
+        return 0
+
+    # Keep existing third-party invocations working:
+    # python pyMap.py north west south east zoom output maptype
+    if len(argv) == 7 and argv[0] not in {"latlng", "tilenum", "config", "sources"}:
+        return _run_legacy_latlng(argv)
+
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "latlng":
+        process_latlng(
+            args.north,
+            args.west,
+            args.south,
+            args.east,
+            args.zoom,
+            args.output,
+            args.maptype,
+        )
+        return 0
+    if args.command == "tilenum":
+        process_tilenum(
+            args.left,
+            args.right,
+            args.top,
+            args.bottom,
+            args.zoom,
+            args.output,
+            args.maptype,
+        )
+        return 0
+    if args.command == "config":
+        config(args.file)
+        return 0
+    if args.command == "sources":
+        for name in sorted(URL):
+            print(name)
+        return 0
+
+    parser.print_help()
+    return 0
+
+
 if __name__ == "__main__":
-    config()
-    # test()
-    # cml()
+    sys.exit(main())

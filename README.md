@@ -12,6 +12,7 @@
 - 🗺️ **Built-in map sources**: Gaode, Tianditu, Google satellite, Esri satellite, and custom URL templates.
 - 🧪 **Unit-tested core flow**: coordinate conversion, validation, download dispatch, cache skip, and file writing.
 - 📝 **Typed and documented code**: core functions include Python type hints and docstrings.
+- 🧰 **Installable CLI**: exposes `pymap` / `pyMap` commands for third-party usage.
 
 ## ⚠️ Usage Notice
 
@@ -30,15 +31,45 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+Install the CLI locally:
+
+```bash
+pip install .
+```
+
 ## 🚀 Quick Start
 
-Run with a geographic bounding box:
+Download with a geographic bounding box:
+
+```bash
+pymap latlng 22.456671 113.889962 22.345576 114.212686 13 --output sample --maptype gaode
+```
+
+Download with tile-number bounds:
+
+```bash
+pymap tilenum 1566 1788 1976 2149 9 --output overlay --maptype default
+```
+
+Run from a config file:
+
+```bash
+pymap config --file config.conf
+```
+
+List built-in sources:
+
+```bash
+pymap sources
+```
+
+The historical direct script style is still supported:
 
 ```bash
 python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 sample gaode
 ```
 
-Arguments:
+Legacy arguments:
 
 | #   | Name        | Description                                      |
 | --- | ----------- | ------------------------------------------------ |
@@ -52,7 +83,11 @@ Arguments:
 
 ## ⚙️ Configuration File
 
-`pyMap.py` reads `config.conf` when run directly.
+`pyMap.py` reads `config.conf` when run directly without arguments. You can also run the same flow through the CLI:
+
+```bash
+pymap config --file config.conf
+```
 
 ### Tile-number mode
 

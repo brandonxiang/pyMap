@@ -103,6 +103,101 @@ class PyMapTest(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
 
+    def test_main_runs_latlng_command(self):
+        with mock.patch.object(self.pymap, "process_latlng") as process_latlng:
+            exit_code = self.pymap.main(
+                [
+                    "latlng",
+                    "22.456671",
+                    "113.889962",
+                    "22.345576",
+                    "114.212686",
+                    "13",
+                    "--output",
+                    "sample",
+                    "--maptype",
+                    "gaode",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        process_latlng.assert_called_once_with(
+            22.456671,
+            113.889962,
+            22.345576,
+            114.212686,
+            13,
+            "sample",
+            "gaode",
+        )
+
+    def test_main_runs_tilenum_command(self):
+        with mock.patch.object(self.pymap, "process_tilenum") as process_tilenum:
+            exit_code = self.pymap.main(
+                [
+                    "tilenum",
+                    "1566",
+                    "1788",
+                    "1976",
+                    "2149",
+                    "9",
+                    "-o",
+                    "overlay",
+                    "-m",
+                    "default",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        process_tilenum.assert_called_once_with(
+            1566,
+            1788,
+            1976,
+            2149,
+            9,
+            "overlay",
+            "default",
+        )
+
+    def test_main_runs_config_command_with_custom_file(self):
+        with mock.patch.object(self.pymap, "config") as config:
+            exit_code = self.pymap.main(["config", "--file", "custom.conf"])
+
+        self.assertEqual(exit_code, 0)
+        config.assert_called_once_with("custom.conf")
+
+    def test_main_lists_sources(self):
+        with mock.patch("sys.stdout") as stdout:
+            exit_code = self.pymap.main(["sources"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(stdout.write.called)
+
+    def test_main_supports_legacy_latlng_arguments(self):
+        with mock.patch.object(self.pymap, "process_latlng") as process_latlng:
+            exit_code = self.pymap.main(
+                [
+                    "22.456671",
+                    "113.889962",
+                    "22.345576",
+                    "114.212686",
+                    "13",
+                    "sample",
+                    "gaode",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        process_latlng.assert_called_once_with(
+            22.456671,
+            113.889962,
+            22.345576,
+            114.212686,
+            13,
+            "sample",
+            "gaode",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
