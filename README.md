@@ -96,6 +96,12 @@ def test():
     process_tilenum(1566, 1788, 1976, 2149, 9, "output/overlay.png")
 ```
 
+## 测试
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
 ## License
 
 [MIT](LICENSE)
