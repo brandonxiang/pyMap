@@ -1,45 +1,62 @@
-# pyMap
+# 🗺️ pyMap
 
-Raster Map Download Helper
+**A lightweight Python helper for downloading raster map tiles and stitching them into a single image.**
 
-## Similar Project
+`pyMap` converts a geographic bounding box or an explicit tile range into Web Mercator tile coordinates, downloads missing tiles into a local cache, and mosaics the cached tiles into a PNG output.
 
- - [brandonxiang/pyMap](https://github.com/brandonxiang/pyMap) Raster Map Download Helper by python.
- - [brandonxiang/pyMap_GFW](https://github.com/brandonxiang/pyMap_GFW) Raster Map Download Helper with [selenium](https://github.com/SeleniumHQ/selenium/) and [PhantomJS](http://phantomjs.org/)
- - [brandonxiang/pyMap_webapp](https://github.com/brandonxiang/pyMap_webapp) A webapp version for [pyMap]((https://github.com/brandonxiang/pyMap)
- - [brandonxiang/nodemap_spider](https://github.com/brandonxiang/nodemap_spider) Crawler Project for Raster Map by Electron.
- - [brandonxiang/nodemap](https://github.com/brandonxiang/nodemap) A electron app for [nodemap_spider](https://github.com/brandonxiang/nodemap_spider)
+## ✨ Highlights
 
-这是一个简单的实例，去实现地图下载工具。如今又很多瓦片的下载工具，但是都是收费的，感觉既然是盗版还要收费，非常不好。我决定做一个简单的地图下载器，将瓦片下载拼接成对应的图片。
+- 🧭 **Two download modes**: geographic coordinates or tile numbers.
+- 🧩 **Tile mosaic output**: merges 256x256 tiles into one PNG image.
+- 💾 **Local tile cache**: skips tiles that already exist under `tiles/`.
+- 🗺️ **Built-in map sources**: Gaode, Tianditu, Google satellite, Esri satellite, and custom URL templates.
+- 🧪 **Unit-tested core flow**: coordinate conversion, validation, download dispatch, cache skip, and file writing.
+- 📝 **Typed and documented code**: core functions include Python type hints and docstrings.
 
-经供参考，不要从事商业用途，后果自负。
+## ⚠️ Usage Notice
 
-## 依赖
+This project is intended for learning, research, and personal tooling. Please respect map provider terms of service, copyright, rate limits, and local laws. Do not use it for unauthorized commercial map downloads.
 
-- python3.5
-- requests 负责下载功能
-- pillow 负责图片拼接
-- tqdm 负责进度条
+## 📦 Requirements
 
-## 安装
+- Python 3.5+
+- `requests` for HTTP downloads
+- `Pillow` for image composition
+- `tqdm` for progress output
 
-1. 安装python3.5
+Install dependencies:
 
-2. 安装对应的第三方库
-
+```bash
+pip install -r requirements.txt
 ```
-pip install -r requirement.txt
+
+## 🚀 Quick Start
+
+Run with a geographic bounding box:
+
+```bash
+python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 sample gaode
 ```
 
-## 用法
+Arguments:
 
-### 配置文件
+| #   | Name        | Description                                      |
+| --- | ----------- | ------------------------------------------------ |
+| 1   | north       | Northwest latitude                               |
+| 2   | west        | Northwest longitude                              |
+| 3   | south       | Southeast latitude                               |
+| 4   | east        | Southeast longitude                              |
+| 5   | zoom        | Web Mercator tile zoom level                     |
+| 6   | output      | Output image name; saved as `output/<name>.png`  |
+| 7   | map type    | Built-in source key or custom tile URL template  |
 
-配置文件格式
+## ⚙️ Configuration File
 
-如果使用瓦片编码下载
+`pyMap.py` reads `config.conf` when run directly.
 
-```
+### Tile-number mode
+
+```ini
 [config]
 下载方式 = 瓦片编码
 左上横轴 = 803
@@ -51,9 +68,9 @@ pip install -r requirement.txt
 地图地址 = default
 ```
 
-如果使用地理编码下载
+### Geographic-coordinate mode
 
-```
+```ini
 [config]
 下载方式 = 地理编码
 左上横轴 = 113.889962
@@ -65,43 +82,101 @@ pip install -r requirement.txt
 地图地址 = gaode
 ```
 
+## 🧑‍💻 Programmatic Usage
 
-### 运用命令行
+Download by geographic coordinates:
 
-```
-python pyMap.py 22.456671 113.889962 22.345576 114.212686 13 sample gaode
-```
+```python
+from pyMap import process_latlng
 
-- 参数1： 西北角纬度
-- 参数2： 西北角经度
-- 参数3： 东南角纬度
-- 参数4： 东南角经度
-- 参数5： 比例尺级别
-- 参数6： 输出路径（默认'output/mosaic.png'）
-- 参数7： 地图类型（默认'gaode.image'）
-
-### 硬编码
-
-请自修修改，下面是通过经纬度下载数据。
-
-```
-def test():
-    process_latlng(22.4566710000, 113.8899620000, 22.3455760000, 114.2126860000, 13)
+process_latlng(
+    north=22.456671,
+    west=113.889962,
+    south=22.345576,
+    east=114.212686,
+    zoom=13,
+    output="sample",
+    maptype="gaode",
+)
 ```
 
-或者通过瓦片编号下载数据。
+Download by tile numbers:
 
-```
-def test():
-    process_tilenum(1566, 1788, 1976, 2149, 9, "output/overlay.png")
+```python
+from pyMap import process_tilenum
+
+process_tilenum(
+    left=1566,
+    right=1788,
+    top=1976,
+    bottom=2149,
+    zoom=9,
+    output="overlay",
+    maptype="default",
+)
 ```
 
-## 测试
+## 🗺️ Map Sources
+
+Built-in source keys are defined in `pyMap.py`:
+
+- `gaode`
+- `gaode.image`
+- `gaode.road`
+- `tianditu`
+- `tianditusat`
+- `tianditu.road`
+- `googlesat`
+- `esrisat`
+- `default`
+- `szbuilding`
+- `szbase`
+
+You can also pass a custom URL template with `{x}`, `{y}`, and `{z}` placeholders:
+
+```python
+process_tilenum(
+    1,
+    2,
+    3,
+    4,
+    5,
+    output="custom",
+    maptype="https://example.com/tiles/{z}/{x}/{y}.png",
+)
+```
+
+## 📁 Output Layout
+
+```text
+tiles/<cache-name>/<zoom>/<x>/<y>.png
+output/<output-name>.png
+```
+
+For built-in map sources, `<cache-name>` is the source key. For custom URL templates, `<cache-name>` is the `output` value.
+
+## 🧪 Testing
+
+Run the standard-library test suite:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-## License
+If `pytest` is available, the suite also works through:
+
+```bash
+pytest
+```
+
+## 🧭 Related Projects
+
+- [brandonxiang/pyMap](https://github.com/brandonxiang/pyMap) - Raster map download helper in Python.
+- [brandonxiang/pyMap_GFW](https://github.com/brandonxiang/pyMap_GFW) - Selenium/PhantomJS-based raster map helper.
+- [brandonxiang/pyMap_webapp](https://github.com/brandonxiang/pyMap_webapp) - Web app version of pyMap.
+- [brandonxiang/nodemap_spider](https://github.com/brandonxiang/nodemap_spider) - Electron crawler for raster maps.
+- [brandonxiang/nodemap](https://github.com/brandonxiang/nodemap) - Electron app for nodemap_spider.
+
+## 📄 License
 
 [MIT](LICENSE)
