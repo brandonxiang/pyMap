@@ -5,12 +5,17 @@ license: MIT
 import os
 import sys
 import math
+import configparser
+from typing import Dict, Tuple, Union
+
 import requests
 from PIL import Image
 from tqdm import trange
-import configparser
 
-URL = {
+Number = Union[int, float, str]
+
+
+URL = {  # type: Dict[str, str]
     "gaode": "http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
     "gaode.image": "http://webst02.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
     "tianditu": "http://t2.tianditu.cn/DataServer?T=vec_w&X={x}&Y={y}&L={z}",
@@ -25,91 +30,127 @@ URL = {
 }
 
 
-def process_latlng(north, west, south, east, zoom, output='mosaic', maptype="default"):
-    """
-    download and mosaic by latlng
+def process_latlng(
+    north: Number,
+    west: Number,
+    south: Number,
+    east: Number,
+    zoom: Number,
+    output: str = "mosaic",
+    maptype: str = "default",
+) -> None:
+    """Download tiles for a geographic bounding box and mosaic them.
 
-    Keyword arguments:
-    north -- north latitude
-    west  -- west longitude
-    south -- south latitude
-    east  -- east longitude
-    zoom  -- map scale (0-18)
-    output -- output file name default mosaic
-
+    Args:
+        north: North latitude of the bounding box.
+        west: West longitude of the bounding box.
+        south: South latitude of the bounding box.
+        east: East longitude of the bounding box.
+        zoom: Web Mercator tile zoom level.
+        output: Output image name without extension.
+        maptype: Built-in map source key or a custom URL template.
     """
     north = float(north)
     west = float(west)
     south = float(south)
     east = float(east)
     zoom = int(zoom)
-    assert(east>-180 and east<180)
-    assert(west>-180 and west<180)
-    assert(north>-90 and north<90)
-    assert(south>-90 and south<90)
-    assert(west<east)
-    assert(north>south)
+    assert(east > -180 and east < 180)
+    assert(west > -180 and west < 180)
+    assert(north > -90 and north < 90)
+    assert(south > -90 and south < 90)
+    assert(west < east)
+    assert(north > south)
 
+    # Convert the geographic box to the inclusive tile-number range used by
+    # the downloader. North/west maps to the top-left tile; south/east maps to
+    # the bottom-right tile.
     left, top = latlng2tilenum(north, west, zoom)
     right, bottom = latlng2tilenum(south, east, zoom)
     process_tilenum(left, right, top, bottom, zoom, output, maptype)
 
 
-def process_tilenum(left, right, top, bottom, zoom, output='mosaic', maptype="default"):
-    """
-    download and mosaic by tile number
+def process_tilenum(
+    left: Number,
+    right: Number,
+    top: Number,
+    bottom: Number,
+    zoom: Number,
+    output: str = "mosaic",
+    maptype: str = "default",
+) -> None:
+    """Download tiles by tile-number bounds and mosaic them.
 
-    Keyword arguments:
-    left   -- left tile number
-    right  -- right tile number
-    top    -- top tile number
-    bottom -- bottom tile number
-    zoom   -- map scale (0-18)
-    output -- output file name default mosaic
-
+    Args:
+        left: Left tile x number.
+        right: Right tile x number.
+        top: Top tile y number.
+        bottom: Bottom tile y number.
+        zoom: Web Mercator tile zoom level.
+        output: Output image name without extension.
+        maptype: Built-in map source key or a custom URL template.
     """
     left = int(left)
     right = int(right)
     top = int(top)
     bottom = int(bottom)
     zoom = int(zoom)
-    assert(right>=left)
-    assert(bottom>=top)
+    assert(right >= left)
+    assert(bottom >= top)
 
     filename = getname(output, maptype)
     download(left, right, top, bottom, zoom, filename, maptype)
     _mosaic(left, right, top, bottom, zoom, output, filename)
 
 
-def download(left, right, top, bottom, zoom, filename, maptype="default"):
+def download(
+    left: int,
+    right: int,
+    top: int,
+    bottom: int,
+    zoom: int,
+    filename: str,
+    maptype: str = "default",
+) -> None:
+    """Download missing tile files into the local cache directory."""
 
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%s/%i/%i/%i.png' % (filename, zoom, x, y)
+            path = "./tiles/%s/%i/%i/%i.png" % (filename, zoom, x, y)
             if not os.path.exists(path):
-                _download(x, y, zoom,filename,maptype)
+                _download(x, y, zoom, filename, maptype)
 
 
-def _download(x, y, z, filename, maptype):
+def _download(x: int, y: int, z: int, filename: str, maptype: str) -> None:
+    """Download one tile and write it as ``tiles/<name>/<z>/<x>/<y>.png``."""
     url = URL.get(maptype, maptype)
-    path = './tiles/%s/%i/%i' % (filename, z, x) 
+    path = "./tiles/%s/%i/%i" % (filename, z, x)
     map_url = url.format(x=x, y=y, z=z)
     r = requests.get(map_url)
-    
+
     if not os.path.isdir(path):
         os.makedirs(path)
-        
-    if r.status_code !=200: 
-        print('request %i %i got response:%i' % (x, y, r.status_code))
-    elif r.status_code == 200: 
-        with open('%s/%i.png' % (path, y), 'wb') as f:
+
+    if r.status_code != 200:
+        print("request %i %i got response:%i" % (x, y, r.status_code))
+    elif r.status_code == 200:
+        with open("%s/%i.png" % (path, y), "wb") as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
                     f.flush()
 
 
-def _mosaic(left, right, top, bottom, zoom, output, filename):
+def _mosaic(
+    left: int,
+    right: int,
+    top: int,
+    bottom: int,
+    zoom: int,
+    output: str,
+    filename: str,
+) -> None:
+    """Merge cached 256x256 tiles into a single output PNG."""
 
     size_x = (right - left + 1) * 256
     size_y = (bottom - top + 1) * 256
@@ -117,13 +158,14 @@ def _mosaic(left, right, top, bottom, zoom, output, filename):
 
     for x in trange(left, right + 1):
         for y in trange(top, bottom + 1):
-            path = './tiles/%s/%i/%i/%i.png' % (filename, zoom, x, y)
+            path = "./tiles/%s/%i/%i/%i.png" % (filename, zoom, x, y)
             if os.path.exists(path):
                 target_im = Image.open(path)
-                # if target_im.mode == 'P':
+                # Paste each tile at the offset relative to the top-left tile
+                # of the requested tile rectangle.
                 output_im.paste(target_im, (256 * (x - left), 256 * (y - top)))
                 target_im.close()
-    output = "output/"+output+".png"
+    output = "output/" + output + ".png"
     output_path = os.path.split(output)
     if len(output_path) > 1 and len(output_path) != 0:
         if not os.path.isdir(output_path[0]):
@@ -132,17 +174,16 @@ def _mosaic(left, right, top, bottom, zoom, output, filename):
     output_im.close()
 
 
-def latlng2tilenum(lat_deg, lng_deg, zoom):
-    """
-    convert latitude, longitude and zoom into tile in x and y axis
-    referencing http://www.cnblogs.com/Tangf/archive/2012/04/07/2435545.html
+def latlng2tilenum(lat_deg: float, lng_deg: float, zoom: int) -> Tuple[int, int]:
+    """Convert latitude/longitude into Web Mercator tile coordinates.
 
-    Keyword arguments:
-    lat_deg -- latitude in degree
-    lng_deg -- longitude in degree
-    zoom    -- map scale (0-18)
+    Args:
+        lat_deg: Latitude in degrees.
+        lng_deg: Longitude in degrees.
+        zoom: Web Mercator tile zoom level.
 
-    Return two parameters as tile numbers in x axis and y axis
+    Returns:
+        A tuple of ``(x_tile, y_tile)`` numbers.
     """
     n = math.pow(2, int(zoom))
     xtile = ((lng_deg + 180) / 360) * n
@@ -150,41 +191,58 @@ def latlng2tilenum(lat_deg, lng_deg, zoom):
     ytile = (1 - (math.log(math.tan(lat_rad) + 1 / math.cos(lat_rad)) / math.pi)) / 2 * n
     return math.floor(xtile), math.floor(ytile)
 
-def getname(output,maptype):
+
+def getname(output: str, maptype: str) -> str:
+    """Return the cache directory name for a map source."""
     url = URL.get(maptype, maptype)
     return maptype if url != maptype else output
 
 
-def config():
+def config() -> None:
+    """Read ``config.conf`` and run the configured download mode."""
     cf = configparser.ConfigParser()
     cf.read("config.conf", encoding="utf-8-sig")
-    download = cf.get("config","下载方式")
-    left = cf.get("config","左上横轴")
-    top = cf.get("config","左上纵轴")
-    right = cf.get("config","右下横轴")
-    bottom = cf.get("config","右下纵轴")
-    zoom = cf.get("config","级别")
-    name = cf.get("config","项目名")
-    maptype = cf.get("config","地图地址")
+    download_type = cf.get("config", "下载方式")
+    left = cf.get("config", "左上横轴")
+    top = cf.get("config", "左上纵轴")
+    right = cf.get("config", "右下横轴")
+    bottom = cf.get("config", "右下纵轴")
+    zoom = cf.get("config", "级别")
+    name = cf.get("config", "项目名")
+    maptype = cf.get("config", "地图地址")
 
-    if download == "瓦片编码":
-        process_tilenum(left,right,top,bottom,zoom,name,maptype)
-    elif download == "地理编码":
-        process_latlng(top,left,bottom,right,zoom,name,maptype)
-
-
-
-def test():
-    process_tilenum(803,857,984,1061,8,'WORKNET')
+    if download_type == "瓦片编码":
+        process_tilenum(left, right, top, bottom, zoom, name, maptype)
+    elif download_type == "地理编码":
+        process_latlng(top, left, bottom, right, zoom, name, maptype)
 
 
-def cml():
+def test() -> None:
+    """Run the historical hard-coded sample download."""
+    process_tilenum(803, 857, 984, 1061, 8, "WORKNET")
+
+
+def cml() -> None:
+    """Parse CLI arguments and run a geographic-bounds download."""
     if not len(sys.argv) in [7, 8]:
-        print('input 7 parameter northeast latitude,northeast longitude, southeast latitude, southeast longitude,zoom , output file, map type like gaode')
+        print(
+            "input 7 parameter northeast latitude,northeast longitude, "
+            "southeast latitude, southeast longitude,zoom , output file, "
+            "map type like gaode"
+        )
         return
-    process_latlng(float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5]), str(sys.argv[6]), str(sys.argv[7]))
+    process_latlng(
+        float(sys.argv[1]),
+        float(sys.argv[2]),
+        float(sys.argv[3]),
+        float(sys.argv[4]),
+        int(sys.argv[5]),
+        str(sys.argv[6]),
+        str(sys.argv[7]),
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     config()
     # test()
     # cml()
